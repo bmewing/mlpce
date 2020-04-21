@@ -17,5 +17,6 @@ install:
   - pip install coverage
 script:
   - coverage run -m pytest
+  - coverage xml
 after_success:
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "3.7" ]]; then ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT; fi
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "3.7" ]]; then ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT -t coverage.py; fi
