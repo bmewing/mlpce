@@ -18,5 +18,4 @@ install:
 script:
   - coverage run -m pytest
 after_success:
-  - coverage xml
   - if [[ "$TRAVIS_PYTHON_VERSION" == "3.7" ]]; then ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT; fi
