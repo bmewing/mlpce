@@ -18,6 +18,7 @@ setup(name='mlpce',
       packages=['mlpce'],
       license='MIT',
       tests_require=['pytest'],
+      install_requires=['numpy', 'pandas'],
       keywords=['machine learning', 'prediction', 'prediction variance', 'confidence'],
       classifiers=[
         "Programming Language :: Python :: 3",
