@@ -10,6 +10,6 @@ install:
 - pip install pytest-cov
 - pip install codecov
 script:
-- pytest --cov=./mgsub/
+- pytest --cov=./mlpce/
 after_success:
 - codecov
