@@ -89,3 +89,20 @@ testdata_model = [append_expectation(testdata[i], models[i]) for i in range(len(
 def test_mlpce_confidence_thresholds(known, new, model, response, expected):
     emm = Confidence(known=known, model=model, responses=response)
     assert emm.model == expected
+
+
+conf_results = [
+    ['High', 'Low'],
+    ['High', 'Low'],
+    ['High', 'Low'],
+    ['High', 'Low'],
+    ['High', 'Low']
+]
+testdata_confidence = [append_expectation(testdata[i], conf_results[i]) for i in range(len(testdata))]
+
+
+@pytest.mark.parametrize("known,new,model,response,expected", testdata_confidence)
+def test_mlpce_confidence_thresholds(known, new, model, response, expected):
+    emm = Confidence(known=known, model=model, responses=response)
+    var, con = emm.assess_x(new)
+    assert con['Full'] == expected
