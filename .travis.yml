@@ -1,16 +1,22 @@
+env:
+  global:
+    - CC_TEST_REPORTER_ID=2a98a2d78677f699802757337e71c6ceab61238f2740c1362088b51082e6036b
+
 language: python
 python:
-  - "3.5"
-  - "3.6"
+  - "3.7"
   - "3.7-dev"
-  - "2.7"
 cache: pip
+before_script:
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
 install:
-- pip install --upgrade pytest
-- pip install pandas
-- pip install pytest-cov
-- pip install codecov
+  - pip install --upgrade pytest
+  - pip install pandas
+  - pip install coverage
 script:
-- pytest --cov=./mlpce/
+  - coverage run --source mlpce -m pytest
+  - coverage xml
 after_success:
-- codecov
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "3.7" ]]; then ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT -t coverage.py; fi
