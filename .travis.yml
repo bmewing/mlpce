@@ -4,11 +4,8 @@ env:
 
 language: python
 python:
-  - "3.5"
-  - "3.6"
   - "3.7"
   - "3.7-dev"
-  - "2.7"
 cache: pip
 before_script:
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
@@ -22,4 +19,4 @@ script:
   - coverage run -m pytest
 after_success:
   - coverage xml
-  - if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$TRAVIS_PYTHON_VERSION" == "3.6" ]]; then ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT; fi
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "3.7" ]]; then ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT; fi
