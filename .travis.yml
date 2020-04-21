@@ -1,0 +1,15 @@
+language: python
+python:
+  - "3.5"
+  - "3.6"
+  - "3.7-dev"
+  - "2.7"
+cache: pip
+install:
+- pip install --upgrade pytest
+- pip install pytest-cov
+- pip install codecov
+script:
+- pytest --cov=./mgsub/
+after_success:
+- codecov

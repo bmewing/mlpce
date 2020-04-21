@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import re
 import operator
-from helpers import drop_term
+from .helpers import drop_term
 
 
 class Confidence:
