@@ -1,4 +1,11 @@
-# Machine Learning Prediction Confidence Estimation
+# mlpce
+
+***Machine Learning Prediction Confidence Estimation***
+
+[![Build Status](https://travis-ci.org/bmewing/mlpce.svg?branch=master)](https://travis-ci.org/bmewing/mlpce)
+[![Maintainability](https://api.codeclimate.com/v1/badges/ae6887700d819adba3f1/maintainability)](https://codeclimate.com/github/bmewing/mlpce/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/ae6887700d819adba3f1/test_coverage)](https://codeclimate.com/github/bmewing/mlpce/test_coverage)
+[![PyPi version](https://pypip.in/v/mlpce/badge.png)](https://crate.io/packages/mlpce/)
 
 Let's say you have a cool XGBOOST model that you've built and now 
 you're wanting to make predictions with it on new data points - how well 
