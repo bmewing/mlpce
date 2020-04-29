@@ -26,7 +26,9 @@ pd_x = pd.DataFrame(data=[[-1, -0.5, 0.5, -1, 1, 1], [1, -1, 1, -1, -1, -1], [-0
                           [0.5, 1, 1, -1, 0.5, -1], [-0.5, 0.5, 1, -1, -1, -1], [-1, 0, 1, 1, -1, 1],
                           [-1, 1, 0.5, -0.5, -1, 1], [-0.5, 1, 0.5, 0.5, 0, -0.5], [-1, -1, 1, 1, 0.5, 0.5]],
                     columns=['a', 'b', 'c', 'd', 'e', 'f'])
-pd_y = pd.DataFrame({'y': [1 for i in range(54)]})
+pd_x_wy = pd_x.copy()
+pd_x_wy['y'] = [1 for i in range(pd_x.shape[0])]
+responses = ['y']
 pd_x_k = pd.DataFrame(data=[[0, 0, 0, 0, 0, 0], [2, 2, 2, 2, 2, 2]],
                       columns=['a', 'b', 'c', 'd', 'e', 'f'])
 
@@ -34,8 +36,8 @@ testdata = [
     (pd_x, pd_x_k, None, None),
     (pd_x.iloc[:-2, :], pd_x_k, None, None),
     (pd_x, pd_x_k, 'a+b+c+d+e+f', None),
-    (pd_x, pd_x_k, None, pd_y),
-    (pd_x, pd_x_k, 'a+b+c+d+e+f', pd_y)
+    (pd_x_wy, pd_x_k, None, responses),
+    (pd_x_wy, pd_x_k, 'a+b+c+d+e+f', responses)
 ]
 
 confidence_thresholds = [
@@ -103,6 +105,7 @@ testdata_confidence = [append_expectation(testdata[i], conf_results[i]) for i in
 
 @pytest.mark.parametrize("known,new,model,response,expected", testdata_confidence)
 def test_mlpce_confidence_thresholds(known, new, model, response, expected):
+    print(response)
     emm = Confidence(known=known, model=model, responses=response)
     var, con = emm.assess_x(new)
     assert con['Full'] == expected

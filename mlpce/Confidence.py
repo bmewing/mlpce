@@ -1,42 +1,67 @@
 from functools import reduce
 import numpy as np
-import pandas as pd
 import re
-import operator
 from .helpers import drop_term
 
 
 class Confidence:
     """A class for assessing expanding input terms to match the model space
 
-    :param known: pandas DataFrame of points with gathered data.
+    :param known: pandas DataFrame of points with gathered data (input and optional responses).
     :param model: OPTIONAL list of model terms to use for calculating I-Optimality based on column names in known.
                   If not provided, model is automatically calculated as highest order possible tier-3 RSM.
-    :param responses: OPTIONAL pandas DataFrame of responses in model used to filter matrix to where response
-                      is not missing.
+    :param responses: OPTIONAL list of column names in the known pandas DataFrame of
+                      responses in model used to filter matrix to non-missing values.
     """
 
-    def __init__(self, known=None, model=None, responses=None):
+    def __init__(self, known, model=None, responses=None):
         self.model = model
         self.known = known.copy()
-        if np.any(known.isna().values):
-            raise Exception('Missing values present in known values, impossible to process.')
-        self.responses = responses
+        if responses is None:
+            responses = []
+        self.responses = responses.copy()
+
+        self._check_for_missing()
+        self.x_columns = self._extract_x_columns()
+
         self.xpxi = None
-        if model is None and known is not None:
+
+        if model is None:
             self.model = self._auto_model(known)
-        elif model is None and known is None:
-            raise ValueError
+
         self.expansion_functions, self.non_linear_terms, self.linear_terms = self._parse_model()
-        if model is not None and known is not None:
-            col_names = known.columns.to_list()
-            extra_cols = [x for x in col_names if x not in self.linear_terms]
-            if len(extra_cols) > 0:
-                print(extra_cols)
-                raise Exception('All columns in known data set must be included as linear terms in the model.')
-        if known is not None:
-            self.xpxi = self.gen_xpxi()
-            self.confidence_thresholds = self._calculate_confidence_threshold()
+        self._check_columns()
+
+        self.xpxi = self.gen_xpxi()
+        self.confidence_thresholds = self._calculate_confidence_threshold()
+
+    def _extract_x_columns(self):
+        all_columns = self.known.columns.to_list()
+        x_columns = [x for x in all_columns if x not in self.responses]
+        return x_columns
+
+    def _check_for_missing(self):
+        tmp = self.known.copy()
+        for c in self.responses:
+            try:
+                del tmp[c]
+            except KeyError:
+                continue
+        if np.any(tmp.isna().values):
+            raise Exception('Missing values present in known values, impossible to process.')
+
+    def _check_columns(self):
+        col_names = [x for x in self.known.columns.to_list() if x not in self.responses]
+        extra_cols = [x for x in col_names if x not in self.linear_terms]
+        if len(extra_cols) > 0:
+            print(extra_cols)
+            raise Exception('All non-response columns in known data set must '
+                            'be included as linear terms in the model.')
+
+        missing_res = [x for x in self.responses if x not in self.known.columns.to_list()]
+        if len(missing_res) > 0:
+            print(missing_res)
+            raise Exception('All provided responses must be present in the known data set.')
 
     def expand_x(self, pd_to_expand):
         """
@@ -101,7 +126,7 @@ class Confidence:
         return linear, two_fi, x2, three_fi, x3
 
     def _auto_model(self, df):
-        linearterms = list(df.columns)
+        linearterms = [x for x in df.columns.to_list() if x not in self.responses]
         linear, two_fi, x2, three_fi, x3 = self._check_degrees_of_freedom(df.shape)
         grid2 = np.meshgrid(linearterms, linearterms, indexing='ij')
         grid3 = np.meshgrid(linearterms, linearterms, linearterms, indexing='ij')
@@ -125,42 +150,46 @@ class Confidence:
                 unique_modelterms.append('*'.join(modelterms[m]))
         return '+'.join(unique_modelterms)
 
-    def gen_xpxi(self, known=None):
+    def gen_xpxi(self, known=None, responses=None):
         """
         Calculate the 'X-prime, X, inverse' matrix for each response and the full dataset
         :param known: pandas DataFrame of points with gathered data.
+        :param responses: OPTIONAL list of column names in known corresponding to response variables
         :return:
         """
         if known is None:
             known = self.known
+        if responses is None:
+            responses = self.responses
 
         vals = [x for x in range(known.shape[0])]
 
-        if self.responses is None:
-            responses = pd.DataFrame(data=vals,
-                                     index=vals,
-                                     columns=['Full'])
-        elif 'Full' not in self.responses.columns.to_list():
-            cols = self.responses.columns.to_list()
-            cols.insert(0, 'Full')
-            self.responses['Full'] = vals
-            responses = self.responses[cols]
-        else:
-            responses = self.responses
+        if len(responses) == 0 or 'Full' not in responses:
+            responses.insert(0, 'Full')
+            known['Full'] = vals
 
-        design = self.expand_x(known).values
+        design = self.expand_x(known.copy())
 
         output = {}
 
-        for col in responses.columns.to_list():
-            keep = list(map(operator.not_, responses[col].isna().to_list()))
-            f_design = design[keep, :]
+        for col in responses:
+            f_design = design.copy()
+            f_design = f_design[f_design[col].notnull()]
+            for c in responses:
+                del f_design[c]
+            f_design = f_design.values
             xpxi = np.linalg.inv(np.dot(f_design.transpose(), f_design))
             output[col] = xpxi
         return output
 
     def _calculate_confidence_threshold(self):
-        values = self.calc_pred_var(x_k=self.known)
+        tmp = self.known.copy()
+        for c in self.responses:
+            try:
+                del tmp[c]
+            except KeyError:
+                continue
+        values = self.calc_pred_var(x_k=tmp)
         output = {}
         for v in values:
             output[v] = [np.percentile(values[v], q=90), np.max(values[v])]
@@ -188,12 +217,12 @@ class Confidence:
         """
         if self.known is None:
             raise Exception('Must provide known values to use this function')
-        if not all([x in self.known.columns.to_list() for x in x_k.columns.to_list()]):
+        if not all([x in self.x_columns for x in x_k.columns.to_list()]):
             raise Exception('Provided x does not match original known data')
         full_x_k = self.expand_x(x_k).values
         output = {}
         for r in self.xpxi:
-            output[r] = list(np.matmul(np.matmul(full_x_k, self.xpxi[r]), full_x_k.transpose()).diagonal())
+            output[r] = list(np.sqrt(np.matmul(np.matmul(full_x_k, self.xpxi[r]), full_x_k.transpose()).diagonal()))
         return output
 
     def assess_x(self, x_k=None):
