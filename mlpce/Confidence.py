@@ -215,10 +215,11 @@ class Confidence:
         :param x_k: pandas DataFrame of new point
         :return: unscaled prediction variance
         """
-        if self.known is None:
-            raise Exception('Must provide known values to use this function')
-        if not all([x in self.x_columns for x in x_k.columns.to_list()]):
+        missing_x = [x for x in self.x_columns if x not in x_k.columns.to_list()]
+        if len(missing_x) > 0:
+            print(missing_x)
             raise Exception('Provided x does not match original known data')
+        x_k = x_k.copy()[self.x_columns]
         full_x_k = self.expand_x(x_k).values
         output = {}
         for r in self.xpxi:
